@@ -316,6 +316,12 @@
                         <option value="">Todos los servicios</option>
                     </select>
                 </div>
+                <div class="filter-group">
+                    <label>🏨 Prestador Médico</label>
+                    <select id="filterPrestador" onchange="applyFilters()">
+                        <option value="">Todos los prestadores (536)</option>
+                    </select>
+                </div>
             </div>
             <button class="btn-reset" onclick="resetFilters()">🔄 Limpiar Todos los Filtros</button>
         </div>
@@ -350,6 +356,12 @@
                 <div class="kpi-label">Países Atendidos</div>
                 <div class="kpi-value" id="kpiPaises">0</div>
                 <div class="kpi-subtitle">Cobertura global</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-icon">🏨</div>
+                <div class="kpi-label">Prestadores Activos</div>
+                <div class="kpi-value" id="kpiPrestadores">0</div>
+                <div class="kpi-subtitle">Proveedores médicos</div>
             </div>
             <div class="kpi-card">
                 <div class="kpi-icon">📈</div>
@@ -396,6 +408,13 @@
             </div>
 
             <div class="chart-card">
+                <h3 class="chart-title">🏨 Top 10 Prestadores Médicos</h3>
+                <div class="chart-container">
+                    <canvas id="chartPrestadores"></canvas>
+                </div>
+            </div>
+
+            <div class="chart-card">
                 <h3 class="chart-title">📅 Facturación Mensual (Año Seleccionado)</h3>
                 <div class="chart-container">
                     <canvas id="chartMensual"></canvas>
@@ -419,7 +438,7 @@
                         <th>Caso #</th>
                         <th>Beneficiario</th>
                         <th>País</th>
-                        <th>Producto</th>
+                        <th>Prestador</th>
                         <th>Cliente</th>
                         <th>Importe USD</th>
                         <th>Estado</th>

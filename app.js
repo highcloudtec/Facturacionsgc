@@ -2,17 +2,13 @@ let rawData = [];
 let filteredData = [];
 let charts = {};
 
-// Inicializar cuando todo esté cargado
 window.addEventListener('load', () => {
-    // Cargar logos
     document.getElementById('logoHct').src = LOGOS.hct;
     document.getElementById('logoCoris').src = LOGOS.coris;
     
-    // Cargar datos
     rawData = DASHBOARD_DATA.data;
     filteredData = rawData;
     
-    // Ocultar loading, mostrar dashboard
     document.querySelector('.loading').style.display = 'none';
     document.getElementById('dashboardContainer').classList.add('loaded');
     
@@ -26,12 +22,14 @@ function initializeFilters() {
     const productos = [...new Set(rawData.map(d => d.producto).filter(p => p && p !== 'nan' && p !== 'None'))].sort();
     const estados = [...new Set(rawData.map(d => d.facturaEstado).filter(e => e && e !== 'nan' && e !== 'None'))].sort();
     const servicios = [...new Set(rawData.map(d => d.servicio).filter(s => s && s !== 'nan' && s !== 'None'))].sort();
+    const prestadores = [...new Set(rawData.map(d => d.prestador).filter(p => p && p !== 'nan' && p !== 'None'))].sort();
 
     populateSelect('filterPais', paises);
     populateSelect('filterCliente', clientes);
     populateSelect('filterProducto', productos);
     populateSelect('filterEstado', estados);
     populateSelect('filterServicio', servicios);
+    populateSelect('filterPrestador', prestadores);
 }
 
 function populateSelect(id, options) {
@@ -51,6 +49,7 @@ function applyFilters() {
     const filterProducto = document.getElementById('filterProducto').value;
     const filterEstado = document.getElementById('filterEstado').value;
     const filterServicio = document.getElementById('filterServicio').value;
+    const filterPrestador = document.getElementById('filterPrestador').value;
 
     filteredData = rawData.filter(row => {
         if (filterYear && row.year.toString() !== filterYear) return false;
@@ -59,6 +58,7 @@ function applyFilters() {
         if (filterProducto && row.producto !== filterProducto) return false;
         if (filterEstado && row.facturaEstado !== filterEstado) return false;
         if (filterServicio && row.servicio !== filterServicio) return false;
+        if (filterPrestador && row.prestador !== filterPrestador) return false;
         return true;
     });
 
@@ -83,6 +83,7 @@ function updateKPIs() {
     const facturasPagadas = filteredData.filter(d => d.facturaEstado === 'Pagada').length;
     const ticketPromedio = filteredData.length > 0 ? totalFacturado / filteredData.length : 0;
     const paisesUnicos = new Set(filteredData.map(d => d.paisSiniestro).filter(p => p && p !== 'nan' && p !== 'None')).size;
+    const prestadoresUnicos = new Set(filteredData.map(d => d.prestador).filter(p => p && p !== 'nan' && p !== 'None')).size;
 
     const years = [...new Set(filteredData.map(d => d.year))].sort();
     let crecimiento = 0;
@@ -101,6 +102,7 @@ function updateKPIs() {
     document.getElementById('kpiPagadas').textContent = facturasPagadas.toLocaleString('es-ES');
     document.getElementById('kpiPromedio').textContent = '$' + Math.round(ticketPromedio).toLocaleString('es-ES');
     document.getElementById('kpiPaises').textContent = paisesUnicos.toLocaleString('es-ES');
+    document.getElementById('kpiPrestadores').textContent = prestadoresUnicos.toLocaleString('es-ES');
     document.getElementById('kpiCrecimiento').textContent = (crecimiento >= 0 ? '+' : '') + crecimiento.toFixed(1) + '%';
 }
 
@@ -110,6 +112,7 @@ function updateCharts() {
     createProductosChart();
     createServiciosChart();
     createClientesChart();
+    createPrestadoresChart();
     createMensualChart();
     createEstadosChart();
 }
@@ -343,6 +346,54 @@ function createClientesChart() {
     });
 }
 
+function createPrestadoresChart() {
+    const data = {};
+    filteredData.forEach(row => {
+        if (row.prestador && row.prestador !== 'nan' && row.prestador !== 'None')
+            data[row.prestador] = (data[row.prestador] || 0) + (row.importeUSD || 0);
+    });
+    const sorted = Object.entries(data).sort((a, b) => b[1] - a[1]).slice(0, 10);
+
+    destroyChart('chartPrestadores');
+    const ctx = document.getElementById('chartPrestadores').getContext('2d');
+    charts.prestadores = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: sorted.map(s => s[0]),
+            datasets: [{
+                data: sorted.map(s => s[1]),
+                backgroundColor: 'rgba(159, 122, 234, 0.85)',
+                borderWidth: 0,
+                borderRadius: 6
+            }]
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: ctx => 'USD $' + Math.round(ctx.parsed.x).toLocaleString('es-ES')
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    beginAtZero: true,
+                    ticks: { callback: val => '$' + (val / 1000000).toFixed(1) + 'M' },
+                    grid: { color: 'rgba(0,0,0,0.05)' }
+                },
+                y: { 
+                    grid: { display: false },
+                    ticks: { font: { size: 10 } }
+                }
+            }
+        }
+    });
+}
+
 function createMensualChart() {
     const years = [...new Set(filteredData.map(d => d.year))];
     const currentYear = Math.max(...years);
@@ -465,7 +516,7 @@ function updateTable() {
             <td><strong>${caso.casoNumero}</strong></td>
             <td>${caso.beneficiario || '-'}</td>
             <td>${caso.paisSiniestro || '-'}</td>
-            <td>${caso.producto || '-'}</td>
+            <td>${caso.prestador || '-'}</td>
             <td>${caso.cliente || '-'}</td>
             <td><strong>$${Math.round(caso.totalImporte).toLocaleString('es-ES')}</strong></td>
             <td><span class="status-badge ${statusClass}">${caso.facturaEstado || '-'}</span></td>
